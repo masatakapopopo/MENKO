@@ -22,6 +22,8 @@
     --gold-dark:#a17c34;
     --indigo:#3B5578;
     --indigo-dark:#2c405b;
+    --diamond:#29ABA4;
+    --diamond-dark:#1f827c;
     --shadow:rgba(38,34,32,0.35);
   }
   *{box-sizing:border-box;}
@@ -145,8 +147,17 @@
   }
   .cell.preview-menko .piece{ outline:3px dashed var(--red); outline-offset:2px; }
   .cell.preview-sandwich .piece{ outline:3px dashed var(--indigo); outline-offset:2px; }
+  .cell.preview-diamond .piece{ outline:3px dashed var(--diamond); outline-offset:2px; }
   .cell.preview-target::before{
     background:rgba(199,154,69,0.85); box-shadow:0 0 8px rgba(199,154,69,0.9);
+  }
+  .diamond-marker{
+    font-size:16px; color:var(--diamond); text-shadow:0 0 6px rgba(41,171,164,0.8);
+    animation: diamondPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes diamondPulse{
+    0%,100%{ transform:scale(1); opacity:0.85; }
+    50%{ transform:scale(1.25); opacity:1; }
   }
 
   .piece{
@@ -159,6 +170,13 @@
   .piece.w-light{ width:62%; height:62%; box-shadow:1px 1px 2px var(--shadow); }
   .piece.w-normal{ width:74%; height:74%; box-shadow:2px 2px 3px var(--shadow); }
   .piece.w-heavy{ width:86%; height:86%; box-shadow:0 4px 5px var(--shadow), 0 0 0 2px rgba(0,0,0,0.08) inset; }
+  .piece.diamond-piece{
+    width:90%; height:90%;
+    box-shadow:0 0 0 3px var(--diamond), 0 4px 8px rgba(41,171,164,0.55);
+  }
+  .piece.diamond-piece.black{ background:radial-gradient(circle at 35% 30%, #3d6663, var(--ink) 75%); }
+  .piece.diamond-piece.white{ background:radial-gradient(circle at 35% 30%, #eafffd, var(--paper) 75%); }
+  .piece.diamond-piece .wt-label{ color:var(--diamond) !important; font-size:15px; text-shadow:0 0 4px rgba(41,171,164,0.6); }
 
   .wt-label{ font-size:12px; font-weight:700; font-family:'Zen Maru Gothic'; user-select:none; pointer-events:none; }
   .piece.black .wt-label{ color:#efe7d8; }
@@ -178,10 +196,18 @@
     55%{ transform:scale(0.85); }
     100%{ transform:scale(1); box-shadow:0 0 0 0 rgba(178,58,58,0); }
   }
+  .piece.impact-diamond{ animation: impactDiamondAnim .55s ease; }
+  @keyframes impactDiamondAnim{
+    0%{ transform:scale(1) rotate(0deg); box-shadow:0 0 0 0 rgba(41,171,164,0.75); }
+    35%{ transform:scale(1.4) rotate(8deg); box-shadow:0 0 0 14px rgba(41,171,164,0); }
+    60%{ transform:scale(0.8) rotate(-4deg); }
+    100%{ transform:scale(1) rotate(0deg); box-shadow:0 0 0 0 rgba(41,171,164,0); }
+  }
   .impact-ring{
     position:absolute; inset:-6px; border-radius:50%; border:3px solid var(--red);
     animation: ringAnim .5s ease forwards; pointer-events:none;
   }
+  .impact-ring.diamond-ring{ border-color:var(--diamond); inset:-9px; border-width:4px; }
   @keyframes ringAnim{
     0%{ opacity:1; transform:scale(0.4); }
     100%{ opacity:0; transform:scale(1.6); }
@@ -221,6 +247,9 @@
   .type-weak .chip{ border-color:var(--indigo); }
   .type-mid .chip{ border-color:var(--gold-dark); }
   .type-strong .chip{ border-color:var(--red-dark); }
+  .chip.diamond-chip{ border-color:var(--diamond); border-width:2px; }
+  .chip.diamond-chip .n, .chip.diamond-chip span:first-child{ color:var(--diamond); }
+  .chip.diamond-chip.selected span{ color:var(--paper) !important; }
 
   .hint-msg{ min-height:20px; font-size:12.5px; color:var(--red-dark); text-align:center; font-weight:700; }
 
@@ -252,8 +281,7 @@
 
 <div class="titlebar">
   <span class="stamp-deco">強</span>
-  <h1>めんこオセロ</h1>
-  <span class="sub">menko × othello</span>
+  <h1>めんこリバーシ</h1>
 </div>
 
 <div class="screen" id="startScreen">
@@ -264,6 +292,7 @@
       通常駒は挟める場所にしか置けないが、<b>めんこ駒は挟みが無くても、隣接する相手駒を反転できる場所ならどこでも置ける</b>。
       置くとまず周囲8マス（斜め含む）の相手駒のうち条件を満たす重さの駒が<b>1枚ずつ</b>反転し（弱＝軽いのみ／中＝軽い・普通／強＝すべて）、
       そのあとで通常のサンドイッチ反転（連鎖含む）が続く。
+      盤上には <b>◆ダイヤモンドゾーン</b> が1ヶ所ランダムに現れ、そこに駒を置くと「ダイヤモンド駒」を1枚獲得。ダイヤモンド駒は<b>駒の上にも強制的に置け</b>、周囲2マスの相手駒を重さ関係なく全反転させる。
     </p>
     <div class="mode-buttons">
       <button class="big-btn" id="btnPvp">👥 対人モード</button>
@@ -324,6 +353,9 @@
       <b>③サンドイッチ反転：</b>めんこの反転が終わったあとに、通常の挟み反転が1枚ずつ反転する。めんこで反転した駒自身も新たな挟みの起点になり、そこからさらに連鎖的に反転することがある。
     </div>
     <div class="rule-block">
+      <b>◆ダイヤモンドゾーン：</b>対局開始時、盤上のどこか1マスにランダムで設置される（◆マーク表示）。そのマスに（どの駒でも）置くと「ダイヤモンド駒」を1枚獲得する。ダイヤモンド駒は唯一<b>駒が置かれているマスの上にも強制的に置くことができ</b>、周囲2マス（斜め含む）の相手駒を<b>重さに関係なく全て</b>反転させ、そのあとサンドイッチ反転（連鎖含む）も続く。
+    </div>
+    <div class="rule-block">
       <b>駒の重さ：</b>軽い・普通・重いは駒に表記されており固定。めんこ駒は計6枚（弱＝軽い・普通・重い各1枚／中＝普通・重い各1枚／強＝重い1枚）。重い駒は弱・中めんこでは反転しないため、防御的に重要な場所へ置くと粘り強くなる。
     </div>
     <div class="rule-block">
@@ -343,6 +375,7 @@
     <div class="rule-block"><b>②めんこ：</b>弱／中／強のめんこ駒を置くと、まず隣接8マスの相手駒が重さ条件で1枚ずつ反転（衝撃エフェクト）。<br>
       弱→軽いのみ／中→軽い・普通／強→全部。</div>
     <div class="rule-block"><b>③サンドイッチ：</b>めんこ反転のあとに、通常の挟み反転（連鎖含む）が1枚ずつ行われる。</div>
+    <div class="rule-block"><b>◆ダイヤモンド：</b>盤上にランダム出現するゾーンに駒を置くと獲得。駒の上にも強制設置でき、周囲2マスの相手駒を重さ関係なく全反転＋サンドイッチ連鎖。</div>
     <div class="rule-block">各プレイヤーはめんこ駒を計6枚（弱＝軽い・普通・重い各1枚／中＝普通・重い各1枚／強＝重い1枚）、残り26枚は通常駒（軽い15・普通8・重い3）。</div>
     <div class="rule-block">駒にカーソルを合わせると反転ガイドが出る（ON/OFF切り替え可）。</div>
     <button class="big-btn modal-close" id="closeRules">閉じる</button>
@@ -406,7 +439,8 @@
       normal:{light:0,normal:0,heavy:0},
       weak:{light:0,normal:0,heavy:0},
       mid:{light:0,normal:0,heavy:0},
-      strong:{light:0,normal:0,heavy:0}
+      strong:{light:0,normal:0,heavy:0},
+      diamond:0
     };
     for(const p of pool){ inv[p.type][p.weight]++; }
     return inv;
@@ -429,6 +463,11 @@
     board[4][3] = {color:'black', type:b2.type, weight:b2.weight};
     board[4][4] = {color:'white', type:w2.type, weight:w2.weight};
 
+    // Randomly place one diamond zone on an empty cell.
+    const emptyCells = [];
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(!board[r][c]) emptyCells.push([r,c]);
+    const [dzr,dzc] = emptyCells[Math.floor(Math.random()*emptyCells.length)];
+
     state = {
       board, mode, humanColor: humanColor||'black',
       turn:'black',
@@ -438,6 +477,7 @@
       animating:false,
       animatingCell:null,
       guideEnabled:true,
+      diamondZone:{r:dzr, c:dzc},
       over:false
     };
   }
@@ -475,18 +515,38 @@
     return flips;
   }
 
-  // Plan a move WITHOUT mutating the real board. `board` must NOT yet contain
-  // a piece at (r,c). Returns an ordered array of flip steps.
+  // Diamond piece: flips ALL opponent pieces within Chebyshev distance <=2
+  // (i.e. up to 2 squares around, including diagonals), regardless of weight.
+  function computeDiamondFlips(board, r, c, color){
+    const flips = [];
+    for(let dr=-2; dr<=2; dr++){
+      for(let dc=-2; dc<=2; dc++){
+        if(dr===0 && dc===0) continue;
+        const rr=r+dr, cc=c+dc;
+        if(inBounds(rr,cc) && board[rr][cc] && board[rr][cc].color!==color){
+          flips.push([rr,cc]);
+        }
+      }
+    }
+    return flips;
+  }
+
+  // Plan a move WITHOUT mutating the real board. Returns an ordered array of flip steps.
   //
   // Normal pieces: plain standard Othello flip - a single pass from the
   // placement cell only, no cascade.
   //
-  // Menko pieces: menko flips happen first (kind:'menko'), then sandwich flips
-  // (kind:'sandwich'). A menko-flipped disc can create a NEW sandwich anywhere
-  // on the board along its own 8 directions - not only along the placement
-  // cell's rays - so every menko-flipped cell (and every cell later flipped by
-  // a sandwich) is re-checked as its own origin, cascading outward until no
-  // more flips occur.
+  // Menko pieces: menko flips happen first (kind:'menko', radius 1, weight-conditional),
+  // then sandwich flips (kind:'sandwich').
+  //
+  // Diamond piece: can be placed even on an occupied cell (captured/overwritten).
+  // Flips ALL opponent pieces within radius 2 regardless of weight (kind:'diamond'),
+  // then sandwich flips follow just like menko.
+  //
+  // For both menko and diamond, a special-flipped disc can create a NEW sandwich
+  // anywhere on the board along its own 8 directions - not only along the placement
+  // cell's rays - so every special-flipped cell (and every cell later flipped by a
+  // sandwich) is re-checked as its own origin, cascading outward until no more flips occur.
   function planMove(board, r, c, color, type, weight){
     const work = board.map(row => row.map(cell => cell ? {...cell} : null));
     work[r][c] = {color, type, weight};
@@ -508,12 +568,16 @@
       if(!queued.has(key)){ queued.add(key); queue.push([rr,cc]); }
     }
 
-    const mFlips = computeMenkoFlips(work, r, c, color, type);
-    for(const [fr,fc] of mFlips){
+    const isDiamond = (type === 'diamond');
+    const specialFlips = isDiamond
+      ? computeDiamondFlips(work, r, c, color)
+      : computeMenkoFlips(work, r, c, color, type);
+    const specialKind = isDiamond ? 'diamond' : 'menko';
+    for(const [fr,fc] of specialFlips){
       work[fr][fc].color = color;
-      plan.push({r:fr, c:fc, kind:'menko'});
+      plan.push({r:fr, c:fc, kind:specialKind});
     }
-    for(const [fr,fc] of mFlips) enqueue(fr,fc);
+    for(const [fr,fc] of specialFlips) enqueue(fr,fc);
     enqueue(r,c);
 
     let iter = 0;
@@ -535,7 +599,9 @@
   // Normal pieces: legal only where a standard sandwich exists.
   // Menko pieces (weak/mid/strong): ALSO legal at any empty cell adjacent to an
   // opponent piece that the menko effect would flip, even with no sandwich.
+  // Diamond piece: legal ANYWHERE on the board, even on top of an occupied cell.
   function isLegalForPiece(board, r, c, color, type){
+    if(type === 'diamond') return true;
     if(board[r][c]) return false;
     if(computeStandardFlips(board, r, c, color).length > 0) return true;
     if(type !== 'normal' && computeMenkoFlips(board, r, c, color, type).length > 0) return true;
@@ -552,6 +618,7 @@
 
   // Whether `color` has ANY legal move at all, across every piece type they still hold.
   function hasAnyLegalMove(board, color, inventory){
+    if(inventory.diamond > 0) return true; // diamond can always be placed somewhere
     for(const type of ['normal','weak','mid','strong']){
       const holds = ['light','normal','heavy'].some(w => inventory[type][w] > 0);
       if(!holds) continue;
@@ -616,22 +683,38 @@
           cell.classList.add('lastmove');
         }
         const data = state.board[r][c];
+        if(!data && state.diamondZone && state.diamondZone.r===r && state.diamondZone.c===c){
+          cell.classList.add('diamond-zone');
+          const marker = document.createElement('div');
+          marker.className = 'diamond-marker';
+          marker.textContent = '◆';
+          cell.appendChild(marker);
+        }
         if(data){
           const piece = document.createElement('div');
-          piece.className = `piece ${data.color} w-${data.weight}`;
+          const isDiamondPiece = data.type === 'diamond';
+          piece.className = `piece ${data.color} w-${data.weight}` + (isDiamondPiece ? ' diamond-piece' : '');
           if(state.animatingCell && state.animatingCell.r===r && state.animatingCell.c===c){
-            piece.classList.add(state.animatingCell.kind==='menko' ? 'impact' : 'flipping');
-            if(state.animatingCell.kind==='menko'){
+            const kind = state.animatingCell.kind;
+            if(kind === 'diamond'){
+              piece.classList.add('impact-diamond');
+              const ring = document.createElement('div');
+              ring.className = 'impact-ring diamond-ring';
+              piece.appendChild(ring);
+            } else if(kind === 'menko'){
+              piece.classList.add('impact');
               const ring = document.createElement('div');
               ring.className = 'impact-ring';
               piece.appendChild(ring);
+            } else {
+              piece.classList.add('flipping');
             }
           }
           const label = document.createElement('span');
           label.className = 'wt-label';
-          label.textContent = WEIGHT_CHAR[data.weight];
+          label.textContent = isDiamondPiece ? '◆' : WEIGHT_CHAR[data.weight];
           piece.appendChild(label);
-          if(data.type !== 'normal'){
+          if(data.type !== 'normal' && data.type !== 'diamond'){
             const stamp = document.createElement('div');
             stamp.className = `stamp ${data.type}`;
             stamp.textContent = STAMP_CHAR[data.type];
@@ -685,6 +768,33 @@
         row.appendChild(chips);
         panel.appendChild(row);
       }
+
+      if(state.inventory[color].diamond > 0){
+        const row = document.createElement('div');
+        row.className = 'type-row type-diamond';
+        const label = document.createElement('div');
+        label.className = 'type-label';
+        label.innerHTML = `<span>◆ ダイヤモンド</span>`;
+        row.appendChild(label);
+        const chips = document.createElement('div');
+        chips.className = 'chips';
+        const count = state.inventory[color].diamond;
+        const chip = document.createElement('div');
+        const sel = state.selected && state.selected.color===color && state.selected.type==='diamond';
+        chip.className = 'chip diamond-chip' + (sel?' selected':'');
+        chip.innerHTML = `<span>◆</span><span class="n">${count}</span>`;
+        if(isSelectable){
+          chip.addEventListener('click', ()=>{
+            state.selected = {color, type:'diamond', weight:'diamond'};
+            hintMsg.textContent = 'ダイヤモンド駒はどこにでも置けます（駒の上も可）';
+            render();
+          });
+        }
+        chips.appendChild(chip);
+        row.appendChild(chips);
+        panel.appendChild(row);
+      }
+
       handsWrap.appendChild(panel);
     }
   }
@@ -702,8 +812,8 @@
   /* ---------------- hover preview (flip guide) ---------------- */
 
   function clearPreview(){
-    document.querySelectorAll('.cell.preview-menko, .cell.preview-sandwich, .cell.preview-target')
-      .forEach(el => el.classList.remove('preview-menko','preview-sandwich','preview-target'));
+    document.querySelectorAll('.cell.preview-menko, .cell.preview-sandwich, .cell.preview-diamond, .cell.preview-target')
+      .forEach(el => el.classList.remove('preview-menko','preview-sandwich','preview-diamond','preview-target'));
   }
 
   function onCellHover(r,c){
@@ -715,7 +825,7 @@
     if(target) target.classList.add('preview-target');
     for(const step of plan){
       const el = boardEl.querySelector(`.cell[data-r="${step.r}"][data-c="${step.c}"]`);
-      if(el) el.classList.add(step.kind==='menko' ? 'preview-menko' : 'preview-sandwich');
+      if(el) el.classList.add(step.kind==='menko' ? 'preview-menko' : step.kind==='diamond' ? 'preview-diamond' : 'preview-sandwich');
     }
   }
 
@@ -729,7 +839,8 @@
       return;
     }
     const {type, weight} = state.selected;
-    if(state.inventory[state.turn][type][weight]<=0) return;
+    const holds = (type === 'diamond') ? state.inventory[state.turn].diamond > 0 : state.inventory[state.turn][type][weight] > 0;
+    if(!holds) return;
     if(!isLegalForPiece(state.board, r, c, state.turn, type)) return;
     clearPreview();
     doMove(r,c,state.turn,type,weight);
@@ -737,11 +848,22 @@
 
   function doMove(r,c,color,type,weight){
     const plan = planMove(state.board, r, c, color, type, weight);
-    state.inventory[color][type][weight]--;
+    if(type === 'diamond'){
+      state.inventory[color].diamond--;
+    } else {
+      state.inventory[color][type][weight]--;
+    }
     state.board[r][c] = {color, type, weight};
     state.lastMove = [r,c];
     state.selected = null;
     state.animating = true;
+
+    if(state.diamondZone && state.diamondZone.r===r && state.diamondZone.c===c){
+      state.inventory[color].diamond++;
+      state.diamondZone = null;
+      hintMsg.textContent = '◆ ダイヤモンドゲット！次のめんこ駒として使えます';
+    }
+
     render();
 
     let idx = 0;
@@ -758,7 +880,7 @@
       state.animatingCell = {r:s.r, c:s.c, kind:s.kind};
       render();
       idx++;
-      setTimeout(step, s.kind==='menko' ? 320 : 260);
+      setTimeout(step, s.kind==='diamond' ? 360 : s.kind==='menko' ? 320 : 260);
     }
     setTimeout(step, 350);
   }
@@ -823,14 +945,14 @@
     const inv = state.inventory[color];
 
     let best = null;
-    for(const type of ['normal','weak','mid','strong']){
-      const weight = pickWeightForType(inv, type);
+    for(const type of ['normal','weak','mid','strong','diamond']){
+      const weight = (type === 'diamond') ? (inv.diamond > 0 ? 'diamond' : null) : pickWeightForType(inv, type);
       if(weight===null) continue;
       for(let r=0;r<N;r++) for(let c=0;c<N;c++){
         if(!isLegalForPiece(state.board, r, c, color, type)) continue;
         const plan = planMove(state.board, r, c, color, type, weight);
         let score = plan.length*15 + POS_WEIGHT[r][c];
-        if(type!=='normal') score -= 3;
+        if(type!=='normal' && type!=='diamond') score -= 3;
         score += Math.random()*2;
         if(!best || score>best.score){
           best = {r,c,type,weight,score};
